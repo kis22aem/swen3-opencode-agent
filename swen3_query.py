@@ -21,7 +21,8 @@ def main():
 
     cfg = Swen3Config(
         zenoh_connect=["tcp/10.15.64.226:7447"],
-        roles=["glm_flash", "qwen3_5_4b_opus"],
+        zenoh_listen=["tcp/0.0.0.0:7447"],
+        roles=["glm_flash", "qwen3_5_4b_opus", "jetson_qwen35_2b"],
         deadline_ms=60000,
     )
     agent = Swen3Agent(cfg)
