@@ -20,7 +20,7 @@ def main():
     question = " ".join(sys.argv[1:])
 
     cfg = Swen3Config(
-        zenoh_connect=["tcp/10.15.64.226:7447"],
+        zenoh_connect=["tcp/10.15.64.226:7447", "tcp/10.15.66.12:7447"],
         zenoh_listen=["tcp/0.0.0.0:7447"],
         roles=["glm_flash", "qwen3_5_4b_opus", "jetson_qwen35_2b"],
         deadline_ms=60000,
