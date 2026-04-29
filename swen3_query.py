@@ -19,10 +19,18 @@ def main():
 
     question = " ".join(sys.argv[1:])
 
+    # Check for worker selection via environment variable
+    workers_env = os.environ.get("SWEN_WORKERS", "")
+    if workers_env:
+        roles = [r.strip() for r in workers_env.split(",") if r.strip()]
+        print(f"[SWEN v3] Using workers: {roles}")
+    else:
+        roles = ["glm_flash", "qwen3_5_4b_opus", "jetson_gemma4b"]
+
     cfg = Swen3Config(
         zenoh_connect=["tcp/10.15.64.226:7447", "tcp/10.15.66.12:7447"],
         zenoh_listen=["tcp/0.0.0.0:7447"],
-        roles=["glm_flash", "qwen3_5_4b_opus", "jetson_gemma4b"],
+        roles=roles,
         deadline_ms=60000,
     )
     agent = Swen3Agent(cfg)
