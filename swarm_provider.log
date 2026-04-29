@@ -22,3 +22,5 @@
 {"timestamp": "2026-04-29T22:16:47.825785", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 38}}
 {"timestamp": "2026-04-29T23:12:05.615409", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 40}}
 {"timestamp": "2026-04-30T00:29:43.667809", "direction": "REQUEST", "data": {"model": "swarm/default", "stream": false, "messages_count": 2}}
+{"timestamp": "2026-04-30T00:34:34.678766", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 42}}
+{"timestamp": "2026-04-30T00:45:17.492063", "direction": "REQUEST", "data": {"model": "swarm/default", "stream": false, "messages_count": 2}}

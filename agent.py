@@ -142,9 +142,9 @@ class Swen3Agent:
         if role == "jetson_qwen35_2b":
             return self._ask_jetson(question, thread_id)
         
-        # Handle local MacBook LM Studio worker directly
-        if role == "local_huihui_qwen3_5_2b":
-            return self._ask_local_lmstudio(question, thread_id)
+        # Handle local MacBook LM Studio worker via Zenoh bridge
+        if role == "macbook_huihui_qwen3_5_2b":
+            return self._ask_macbook_via_zenoh(question, thread_id)
         
         if not self._ensure_connected():
             return AskResult(role=role, worker_id="?", ok=False,
@@ -252,60 +252,89 @@ class Swen3Agent:
                 error=str(e)
             )
 
-    def _ask_local_lmstudio(self, question: str, thread_id: str) -> AskResult:
-        """Send question to local MacBook LM Studio via HTTP."""
-        import urllib.request
-        import time
-        
-        LOCAL_URL = "http://127.0.0.1:1234/v1/chat/completions"
-        MODEL = "huihui-qwen3.5-2b-abliterated"
-        SYSTEM_PROMPT = "You are a helpful assistant. Be concise."
-        
-        try:
-            api_req = {
-                "model": MODEL,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": question}
-                ],
-                "temperature": 0.7,
-                "max_tokens": 1024,
-            }
-            
-            req_data = json.dumps(api_req).encode()
-            api_request = urllib.request.Request(
-                LOCAL_URL,
-                data=req_data,
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-            
-            start = time.time()
-            with urllib.request.urlopen(api_request, timeout=120) as resp:
-                api_resp = json.loads(resp.read().decode())
-            
-            latency_ms = int((time.time() - start) * 1000)
-            answer = api_resp["choices"][0]["message"]["content"]
-            
+    def _ask_macbook_via_zenoh(self, question: str, thread_id: str) -> AskResult:
+        """Send question to MacBook LM Studio via Zenoh bridge."""
+        if not self._ensure_connected():
             return AskResult(
-                role="local_huihui_qwen3_5_2b",
-                worker_id="macbook",
-                ok=True,
-                answer=answer,
-                latency_ms=latency_ms,
-                model=MODEL,
-                error=None
-            )
-        except Exception as e:
-            return AskResult(
-                role="local_huihui_qwen3_5_2b",
-                worker_id="macbook",
+                role="macbook_huihui_qwen3_5_2b",
+                worker_id="?",
                 ok=False,
                 answer="",
                 latency_ms=0,
-                model=MODEL,
+                model="huihui-qwen3.5-2b-abliterated",
+                error="Not connected to Zenoh"
+            )
+        
+        req = {
+            "request_id": str(uuid.uuid4()),
+            "thread_id": thread_id,
+            "role": "macbook_huihui_qwen3_5_2b",
+            "question": question,
+            "deadline_ms": self.config.deadline_ms,
+        }
+        
+        try:
+            fifo = zenoh_handlers.FifoChannel(4)
+            timeout_s = self.config.deadline_ms / 1000.0 + 5
+            replies = self.session.get(
+                "swen/v3/ask/macbook_huihui_qwen3_5_2b",
+                handler=fifo,
+                payload=json.dumps(req).encode(),
+                timeout=timeout_s
+            )
+            for reply in replies:
+                try:
+                    if reply.ok is None:
+                        err_msg = str(reply.err) if reply.err else "no ok payload"
+                        return AskResult(
+                            role="macbook_huihui_qwen3_5_2b",
+                            worker_id="?",
+                            ok=False,
+                            answer="",
+                            latency_ms=0,
+                            model="huihui-qwen3.5-2b-abliterated",
+                            error=err_msg
+                        )
+                    resp = json.loads(bytes(reply.ok.payload).decode())
+                    return AskResult(
+                        role="macbook_huihui_qwen3_5_2b",
+                        worker_id=resp.get("worker_id", "macbook"),
+                        ok=resp.get("ok", False),
+                        answer=resp.get("answer", ""),
+                        latency_ms=resp.get("latency_ms", 0),
+                        model=resp.get("model", "huihui-qwen3.5-2b-abliterated"),
+                        error=resp.get("error")
+                    )
+                except Exception as e:
+                    return AskResult(
+                        role="macbook_huihui_qwen3_5_2b",
+                        worker_id="?",
+                        ok=False,
+                        answer="",
+                        latency_ms=0,
+                        model="huihui-qwen3.5-2b-abliterated",
+                        error=str(e)
+                    )
+        except Exception as e:
+            return AskResult(
+                role="macbook_huihui_qwen3_5_2b",
+                worker_id="?",
+                ok=False,
+                answer="",
+                latency_ms=0,
+                model="huihui-qwen3.5-2b-abliterated",
                 error=str(e)
             )
+        
+        return AskResult(
+            role="macbook_huihui_qwen3_5_2b",
+            worker_id="?",
+            ok=False,
+            answer="",
+            latency_ms=0,
+            model="huihui-qwen3.5-2b-abliterated",
+            error="no reply"
+        )
 
     # ── Parallel fanout ─────────────────────────────────────────────────────
 
