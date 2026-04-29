@@ -24,3 +24,20 @@
 {"timestamp": "2026-04-30T00:29:43.667809", "direction": "REQUEST", "data": {"model": "swarm/default", "stream": false, "messages_count": 2}}
 {"timestamp": "2026-04-30T00:34:34.678766", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 42}}
 {"timestamp": "2026-04-30T00:45:17.492063", "direction": "REQUEST", "data": {"model": "swarm/default", "stream": false, "messages_count": 2}}
+{"timestamp": "2026-04-30T01:10:28.819501", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 44}}
+{"timestamp": "2026-04-30T01:10:28.819781", "direction": "ERROR", "data": {"error": "No workers available"}}
+{"timestamp": "2026-04-30T01:10:30.836782", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 44}}
+{"timestamp": "2026-04-30T01:10:30.837275", "direction": "ERROR", "data": {"error": "No workers available"}}
+{"timestamp": "2026-04-30T01:10:34.852296", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 44}}
+{"timestamp": "2026-04-30T01:10:34.852803", "direction": "ERROR", "data": {"error": "No workers available"}}
+{"timestamp": "2026-04-30T01:10:42.867120", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 44}}
+{"timestamp": "2026-04-30T01:10:42.867623", "direction": "ERROR", "data": {"error": "No workers available"}}
+{"timestamp": "2026-04-30T01:10:58.881975", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 44}}
+{"timestamp": "2026-04-30T01:10:58.882511", "direction": "ERROR", "data": {"error": "No workers available"}}
+{"timestamp": "2026-04-30T01:11:45.751731", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 45}}
+{"timestamp": "2026-04-30T01:11:45.751891", "direction": "ERROR", "data": {"error": "No workers available"}}
+{"timestamp": "2026-04-30T01:11:47.773989", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 45}}
+{"timestamp": "2026-04-30T01:11:47.774727", "direction": "ERROR", "data": {"error": "No workers available"}}
+{"timestamp": "2026-04-30T01:11:51.790865", "direction": "REQUEST", "data": {"model": "default", "stream": true, "messages_count": 45}}
+{"timestamp": "2026-04-30T01:11:51.791190", "direction": "ERROR", "data": {"error": "No workers available"}}
+{"timestamp": "2026-04-30T01:17:53.097210", "direction": "REQUEST", "data": {"model": "swarm/default", "stream": false, "messages_count": 2}}
