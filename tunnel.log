@@ -1,0 +1,7 @@
+INFO:     Started server process [33505]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+🚀 Tunnel → qwen3.5-4b-opus @ 10.15.64.226:1234
+INFO:     127.0.0.1:55961 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+/v1/chat/completions", "stream": true, "model": "qwen3.5-4b-claude-4.6-opus-reasoning-distilled-v2", "messages_count": 2, "messages": [{"role": "system", "content_preview": "You are opencode, an interactive CLI tool that helps users with software engineering tasks. Use the instructions below and the tools available to you to assist the user.\n\nIMPORTANT: You must NEVER gen..."}, {"role": "user", "content_preview": [{"type": "text", "text": "как дела?"}]}]}}

@@ -21,7 +21,6 @@ class AutonomousSwarm:
         """Подключение к Zenoh mesh"""
         cfg = Swen3Config(
             zenoh_connect=["tcp/10.15.64.226:7447", "tcp/10.15.66.12:7447"],
-            zenoh_listen=["tcp/0.0.0.0:7447"],
             roles=self.available_workers,
             deadline_ms=60000,
         )

@@ -7,11 +7,6 @@ export interface Swen3ProviderOptions {
   timeout?: number;
 }
 
-export interface Message {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
-
 // System prompt для роя
 const SWARM_SYSTEM_PROMPT = `Ты — распределённый рой ИИ-агентов SWEN v3.
 Ты состоишь из нескольких воркеров, которые работают параллельно:
@@ -24,7 +19,31 @@ const SWARM_SYSTEM_PROMPT = `Ты — распределённый рой ИИ-�
 
 Отвечай на языке запроса пользователя.`;
 
-export class Swen3Provider {
+// AI SDK stream part types
+type TextDeltaPart = {
+  type: "text-delta";
+  textDelta: string;
+};
+
+type FinishPart = {
+  type: "finish";
+  finishReason: "stop" | "length" | "content-filter" | "tool-calls" | "error" | "other";
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+  };
+};
+
+type StreamPart = TextDeltaPart | FinishPart;
+
+class Swen3LanguageModel {
+  readonly specificationVersion = "v1" as const;
+  readonly provider = "swen3";
+  readonly modelId = "swarm";
+  readonly defaultObjectGenerationMode = undefined;
+  readonly supportsImageUrls = false;
+  readonly supportsStructuredOutputs = false;
+
   private options: Swen3ProviderOptions;
 
   constructor(options: Swen3ProviderOptions = {}) {
@@ -36,37 +55,68 @@ export class Swen3Provider {
     };
   }
 
-  async generate(
-    messages: Message[],
-    options?: { signal?: AbortSignal }
-  ): Promise<ReadableStream<Uint8Array>> {
-    // Извлекаем последний user message
-    const lastMessage = messages.filter((m) => m.role === "user").pop();
+  async doGenerate(options: any): Promise<any> {
+    const stream = await this.doStream(options);
+    const chunks: string[] = [];
+    
+    const reader = stream.stream.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value.type === "text-delta") {
+        chunks.push(value.textDelta);
+      }
+    }
+
+    const text = chunks.join("");
+    
+    return {
+      text,
+      finishReason: "stop" as const,
+      usage: {
+        promptTokens: 0,
+        completionTokens: Math.ceil(text.length / 4),
+      },
+      rawCall: {
+        rawPrompt: options.prompt,
+        rawSettings: {},
+      },
+    };
+  }
+
+  async doStream(options: any): Promise<any> {
+    const messages = options.prompt || [];
+    const lastMessage = messages.filter((m: any) => m.role === "user").pop();
     const question = lastMessage?.content || "";
 
-    // Создаём поток
-    const stream = new ReadableStream<Uint8Array>({
+    const stream = new ReadableStream<StreamPart>({
       start: async (controller) => {
         try {
-          // Отправляем заголовок
-          controller.enqueue(
-            new TextEncoder().encode(
-              `🌐 SWEN v3 Swarm Thinking...\n\n`
-            )
-          );
+          controller.enqueue({
+            type: "text-delta",
+            textDelta: `🌐 SWEN v3 Swarm Thinking...\n\n`,
+          });
 
-          // Запускаем всех воркеров параллельно
           const workerStreams = this.options.workers!.map((worker) =>
             this.streamWorker(worker, question, controller)
           );
 
-          // Ждём завершения всех
           await Promise.all(workerStreams);
 
-          // Отправляем финальный ответ
-          controller.enqueue(
-            new TextEncoder().encode(`\n✅ Swarm complete\n`)
-          );
+          controller.enqueue({
+            type: "text-delta",
+            textDelta: `\n✅ Swarm complete\n`,
+          });
+          
+          controller.enqueue({
+            type: "finish",
+            finishReason: "stop",
+            usage: {
+              promptTokens: 0,
+              completionTokens: 0,
+            },
+          });
+          
           controller.close();
         } catch (error) {
           controller.error(error);
@@ -74,46 +124,48 @@ export class Swen3Provider {
       },
     });
 
-    return stream;
+    return {
+      stream,
+      rawCall: {
+        rawPrompt: options.prompt,
+        rawSettings: {},
+      },
+    };
   }
 
   private async streamWorker(
     worker: string,
     question: string,
-    controller: ReadableStreamDefaultController<Uint8Array>
+    controller: ReadableStreamDefaultController<StreamPart>
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const venv = `${process.env.HOME}/.venvs/swen3`;
       const script = `${process.env.HOME}/.local/share/swen3/autonomous_swarm.py`;
       const python = `${venv}/bin/python3`;
 
-      // Отправляем начало воркера
-      controller.enqueue(
-        new TextEncoder().encode(`\n🤖 [${worker}] thinking...\n`)
-      );
+      controller.enqueue({
+        type: "text-delta",
+        textDelta: `\n🤖 [${worker}] thinking...\n`,
+      });
 
       const proc = spawn(python, [script, question], {
         env: {
           ...process.env,
           VIRTUAL_ENV: venv,
           PATH: `${venv}/bin:${process.env.PATH}`,
-          SWEN_WORKERS: worker, // Отправляем только на этого воркера
+          SWEN_WORKERS: worker,
         },
       });
 
-      let output = "";
-
       proc.stdout.on("data", (data: Buffer) => {
         const text = data.toString();
-        output += text;
-
-        // Отправляем чанки в поток (только ответ, без служебных строк)
         const lines = text.split("\n");
         for (const line of lines) {
           if (line.trim() && !line.startsWith("[Autonomous Swarm]")) {
-            controller.enqueue(
-              new TextEncoder().encode(`  ${line}\n`)
-            );
+            controller.enqueue({
+              type: "text-delta",
+              textDelta: `  ${line}\n`,
+            });
           }
         }
       });
@@ -121,22 +173,25 @@ export class Swen3Provider {
       proc.stderr.on("data", (data: Buffer) => {
         const text = data.toString();
         if (text.includes("Error")) {
-          controller.enqueue(
-            new TextEncoder().encode(`  ❌ Error: ${text.trim()}\n`)
-          );
+          controller.enqueue({
+            type: "text-delta",
+            textDelta: `  ❌ Error: ${text.trim()}\n`,
+          });
         }
       });
 
       proc.on("close", (code) => {
         try {
           if (code === 0) {
-            controller.enqueue(
-              new TextEncoder().encode(`  ✅ [${worker}] done\n`)
-            );
+            controller.enqueue({
+              type: "text-delta",
+              textDelta: `  ✅ [${worker}] done\n`,
+            });
           } else {
-            controller.enqueue(
-              new TextEncoder().encode(`  ❌ [${worker}] failed (code ${code})\n`)
-            );
+            controller.enqueue({
+              type: "text-delta",
+              textDelta: `  ❌ [${worker}] failed (code ${code})\n`,
+            });
           }
         } catch (e) {
           // Controller already closed, ignore
@@ -146,22 +201,23 @@ export class Swen3Provider {
 
       proc.on("error", (err) => {
         try {
-          controller.enqueue(
-            new TextEncoder().encode(`  ❌ [${worker}] error: ${err.message}\n`)
-          );
+          controller.enqueue({
+            type: "text-delta",
+            textDelta: `  ❌ [${worker}] error: ${err.message}\n`,
+          });
         } catch (e) {
           // Controller already closed, ignore
         }
-        resolve(); // Не reject, чтобы другие воркеры продолжали
+        resolve();
       });
 
-      // Таймаут
       setTimeout(() => {
         proc.kill();
         try {
-          controller.enqueue(
-            new TextEncoder().encode(`  ⏱️ [${worker}] timeout\n`)
-          );
+          controller.enqueue({
+            type: "text-delta",
+            textDelta: `  ⏱️ [${worker}] timeout\n`,
+          });
         } catch (e) {
           // Controller already closed, ignore
         }
@@ -171,5 +227,23 @@ export class Swen3Provider {
   }
 }
 
-// Экспорт для opencode
-export default Swen3Provider;
+// Provider factory
+export class Swen3Provider {
+  private options: Swen3ProviderOptions;
+
+  constructor(options: Swen3ProviderOptions = {}) {
+    this.options = options;
+  }
+
+  languageModel(modelId: string): Swen3LanguageModel {
+    return new Swen3LanguageModel(this.options);
+  }
+}
+
+// Factory function for AI SDK compatibility
+export function createSwen3Provider(options?: Swen3ProviderOptions): Swen3Provider {
+  return new Swen3Provider(options);
+}
+
+// Default export
+export default createSwen3Provider;

@@ -142,6 +142,10 @@ class Swen3Agent:
         if role == "jetson_qwen35_2b":
             return self._ask_jetson(question, thread_id)
         
+        # Handle local MacBook LM Studio worker directly
+        if role == "local_huihui_qwen3_5_2b":
+            return self._ask_local_lmstudio(question, thread_id)
+        
         if not self._ensure_connected():
             return AskResult(role=role, worker_id="?", ok=False,
                              answer="", latency_ms=0, model="?",
@@ -241,6 +245,61 @@ class Swen3Agent:
             return AskResult(
                 role="jetson_qwen35_2b",
                 worker_id="jetson",
+                ok=False,
+                answer="",
+                latency_ms=0,
+                model=MODEL,
+                error=str(e)
+            )
+
+    def _ask_local_lmstudio(self, question: str, thread_id: str) -> AskResult:
+        """Send question to local MacBook LM Studio via HTTP."""
+        import urllib.request
+        import time
+        
+        LOCAL_URL = "http://127.0.0.1:1234/v1/chat/completions"
+        MODEL = "huihui-qwen3.5-2b-abliterated"
+        SYSTEM_PROMPT = "You are a helpful assistant. Be concise."
+        
+        try:
+            api_req = {
+                "model": MODEL,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": question}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 1024,
+            }
+            
+            req_data = json.dumps(api_req).encode()
+            api_request = urllib.request.Request(
+                LOCAL_URL,
+                data=req_data,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            
+            start = time.time()
+            with urllib.request.urlopen(api_request, timeout=120) as resp:
+                api_resp = json.loads(resp.read().decode())
+            
+            latency_ms = int((time.time() - start) * 1000)
+            answer = api_resp["choices"][0]["message"]["content"]
+            
+            return AskResult(
+                role="local_huihui_qwen3_5_2b",
+                worker_id="macbook",
+                ok=True,
+                answer=answer,
+                latency_ms=latency_ms,
+                model=MODEL,
+                error=None
+            )
+        except Exception as e:
+            return AskResult(
+                role="local_huihui_qwen3_5_2b",
+                worker_id="macbook",
                 ok=False,
                 answer="",
                 latency_ms=0,

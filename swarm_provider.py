@@ -25,7 +25,7 @@ app = FastAPI(title="SWEN v3 SwarmProvider v3")
 
 # ── Configuration ───────────────────────────────────────────────────────────
 
-SWARM_WORKERS = ["qwen3_5_4b_opus", "jetson_gemma4b"]
+SWARM_WORKERS = ["qwen3_5_4b_opus", "jetson_gemma4b", "local_huihui_qwen3_5_2b"]
 ZENOH_CONNECT = ["tcp/10.15.64.226:7447", "tcp/10.15.66.12:7447"]
 DEADLINE_MS = 60000
 LOG_FILE = "/Users/alex/.local/share/swen3/swarm_provider.log"

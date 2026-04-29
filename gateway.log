@@ -1,0 +1,24 @@
+/Users/alex/.local/share/swen3/openai_gateway.py:35: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  class ChatCompletionRequest(BaseModel):
+/Users/alex/.local/share/swen3/openai_gateway.py:138: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [23864]
+INFO:     Waiting for application startup.
+🚀 Starting SWEN v3 OpenAI-compatible API Gateway...
+📡 Workers: glm_flash, qwen3_5_4b_opus, jetson_gemma4b
+🔗 Endpoint: http://localhost:8080/v1/chat/completions
+✅ Connected to SWEN v3 swarm
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54779 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54781 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54815 - "POST /v1/chat/completions HTTP/1.1" 422 Unprocessable Content
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [23864]
