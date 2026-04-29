@@ -30,6 +30,22 @@ class AutonomousSwarm:
             raise Exception(f"Cannot connect: {self.agent.status}")
         time.sleep(1)
     
+    def process_single(self, worker: str, question: str) -> Dict[str, Any]:
+        """Отправить на ОДНОГО воркера (для потокового вывода)"""
+        try:
+            result = self.agent.ask_one(worker, question, f"single-{time.time()}")
+            if result.ok:
+                return {
+                    "status": "success",
+                    "answer": result.answer,
+                    "worker": worker,
+                    "latency_ms": result.latency_ms,
+                }
+            else:
+                return {"status": "error", "error": result.error, "answer": ""}
+        except Exception as e:
+            return {"status": "error", "error": str(e), "answer": ""}
+    
     def process(self, question: str) -> Dict[str, Any]:
         """Автономная обработка: отправляем на ВСЕХ воркеров, выбираем лучший"""
         start_time = time.time()
@@ -77,29 +93,43 @@ class AutonomousSwarm:
             self.agent.disconnect()
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: autonomous_swarm.py <question>")
-        sys.exit(1)
+    import argparse
+    parser = argparse.ArgumentParser(description="Autonomous Swarm")
+    parser.add_argument("question", nargs="+", help="Question to ask")
+    parser.add_argument("--worker", help="Single worker to use (for streaming)")
+    args = parser.parse_args()
     
-    question = " ".join(sys.argv[1:])
+    question = " ".join(args.question)
     
     try:
         swarm = AutonomousSwarm()
         swarm.connect()
-        result = swarm.process(question)
+        
+        if args.worker:
+            # Одиночный воркер (для потокового вывода)
+            result = swarm.process_single(args.worker, question)
+            if result["status"] == "success":
+                print(result["answer"])
+            else:
+                print(f"[Error] {result.get('error', 'Unknown')}", file=sys.stderr)
+                sys.exit(1)
+        else:
+            # Все воркеры (автономный выбор)
+            result = swarm.process(question)
+            
+            if result["status"] == "error":
+                print(f"[Error] {result['error']}", file=sys.stderr)
+                sys.exit(1)
+            
+            print(f"\n{'='*60}")
+            print(f"[Autonomous Swarm] Answer (from {result['worker']}):")
+            print(f"{'='*60}")
+            print(result["answer"])
+            print(f"\n[Stats] Time: {result['total_time_ms']}ms")
+            print(f"Workers: {', '.join(result['workers_used'])}")
+            print(f"{'='*60}\n")
+        
         swarm.disconnect()
-        
-        if result["status"] == "error":
-            print(f"[Error] {result['error']}", file=sys.stderr)
-            sys.exit(1)
-        
-        print(f"\n{'='*60}")
-        print(f"[Autonomous Swarm] Answer (from {result['worker']}):")
-        print(f"{'='*60}")
-        print(result["answer"])
-        print(f"\n[Stats] Time: {result['total_time_ms']}ms")
-        print(f"Workers: {', '.join(result['workers_used'])}")
-        print(f"{'='*60}\n")
         
     except Exception as e:
         print(f"[Error] {e}", file=sys.stderr)

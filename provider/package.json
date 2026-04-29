@@ -1,0 +1,22 @@
+{
+  "name": "@swen3/provider",
+  "version": "1.0.0",
+  "description": "SWEN v3 distributed AI swarm provider for opencode",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["swen3", "swarm", "ai", "provider"],
+  "author": "SWEN3 Team",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "ai": "^3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
